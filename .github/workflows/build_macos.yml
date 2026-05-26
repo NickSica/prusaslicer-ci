@@ -28,7 +28,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: mjonuschat/prusaslicer-ci
-          token: ${{ secrets.CI_REPO_TOKEN }}
           path: .ci
 
       - name: Setup GitHub environment
@@ -148,7 +147,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: mjonuschat/prusaslicer-ci
-          token: ${{ secrets.CI_REPO_TOKEN }}
           path: .ci
 
       - name: Setup GitHub environment
