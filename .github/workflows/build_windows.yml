@@ -6,8 +6,7 @@ on:
 jobs:
   build_windows:
     name: Compile
-    runs-on: [self-hosted, Windows, X64]
-    environment: ${{ github.event_name == 'pull_request' && 'self-hosted-approval' || '' }}
+    runs-on: windows-latest
     env:
       date:
       ver:
