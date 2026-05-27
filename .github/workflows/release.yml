@@ -52,7 +52,7 @@ jobs:
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "PrusaSlicer-*BOSS+win64*,PrusaSlicer-Installer-*BOSS*,PrusaSlicer-*BOSS+MacOS-universal*,PrusaSlicer-*+BOSS+Linux*"
+          artifacts: "PrusaSlicer-*BOSS+win64*,PrusaSlicer-Installer-*BOSS*,PrusaSlicer-*+BOSS+Linux*"
           allowUpdates: false
           artifactErrorsFailBuild: true
           bodyFile: ${{ runner.temp }}/CHANGELOG.md
@@ -106,7 +106,7 @@ jobs:
       - name: Create PrusaSlicer (BOSS) GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "PrusaSlicer-*BOSS+win64*,PrusaSlicer-Installer-*BOSS*,PrusaSlicer-*BOSS+MacOS-universal*,PrusaSlicer-*+BOSS+Linux*"
+          artifacts: "PrusaSlicer-*BOSS+win64*,PrusaSlicer-Installer-*BOSS*,PrusaSlicer-*+BOSS+Linux*"
           allowUpdates: false
           artifactErrorsFailBuild: true
           bodyFile: ${{ runner.temp }}/CHANGELOG.md
