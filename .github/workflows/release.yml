@@ -142,7 +142,7 @@ jobs:
       - name: Checkout CI scripts
         uses: actions/checkout@v6
         with:
-          repository: mjonuschat/prusaslicer-ci
+          repository: NickSica/prusaslicer-ci
           path: .ci
 
       - name: Setup Pages
