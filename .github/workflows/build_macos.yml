@@ -29,6 +29,7 @@ jobs:
         with:
           repository: mjonuschat/prusaslicer-ci
           token: ${{ secrets.CI_REPO_TOKEN }}
+          ref: legacy
           path: .ci
 
       - name: Setup GitHub environment
@@ -149,6 +150,7 @@ jobs:
         with:
           repository: mjonuschat/prusaslicer-ci
           token: ${{ secrets.CI_REPO_TOKEN }}
+          ref: legacy
           path: .ci
 
       - name: Setup GitHub environment

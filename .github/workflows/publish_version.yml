@@ -28,6 +28,7 @@ jobs:
         with:
           repository: mjonuschat/prusaslicer-ci
           token: ${{ secrets.CI_REPO_TOKEN }}
+          ref: legacy
           path: .ci
 
       - name: Setup Pages
