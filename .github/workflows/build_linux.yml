@@ -134,8 +134,11 @@ jobs:
       # skipped here on a cache hit, built during the full app build
       # otherwise -- and a save positioned before the full build would
       # miss whichever one actually populated .flatpak-builder.
+      # Also save after a failed app build, so the next run reuses the
+      # dependency stages instead of building them again.
       - name: Save build dependencies cache
         id: cache-build-deps-save
+        if: ${{ !cancelled() }}
         uses: actions/cache/save@v5
         with:
           path: ${{ steps.cache-keys.outputs.cache-path }}
