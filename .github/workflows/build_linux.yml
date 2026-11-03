@@ -9,19 +9,12 @@ jobs:
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
-    strategy:
-      matrix:
-        include:
-          - arch: x86_64
-            runner: ubuntu-latest
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
     env:
       date: ""
       date_long: ""
       ver: ""
       ver_pure: ""
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -55,7 +48,7 @@ jobs:
         id: cache-keys
         run: |
           echo cache-path=${{ github.workspace }}/.flatpak-builder >> "$GITHUB_OUTPUT"
-          echo cache-key=Linux_${{ matrix.arch }}-cache-deps-${{ hashFiles('deps/**') }} >> "$GITHUB_OUTPUT"
+          echo cache-key=Linux_x86_64-cache-deps-${{ hashFiles('deps/**') }} >> "$GITHUB_OUTPUT"
 
       - name: Restore build dependencies cache
         id: cache-build-deps-restore
@@ -120,20 +113,20 @@ jobs:
         if: steps.cache-build-deps-restore.outputs.cache-hit != 'true'
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: PrusaSlicer-Dependencies-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}.flatpak
+          bundle: PrusaSlicer-Dependencies-${{ env.ver }}+Linux-${{ env.date }}.flatpak
           stop-at-module: PrusaSlicer
           manifest-path: .flatpak/io.github.mjonuschat.PrusaSlicer.json
           cache: false
-          arch: ${{ matrix.arch }}
+          arch: x86_64
           upload-artifact: false
 
       - name: Build PrusaSlicer (BOSS) Linux Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}.flatpak
+          bundle: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.flatpak
           manifest-path: .flatpak/io.github.mjonuschat.PrusaSlicer.json
           cache: false
-          arch: ${{ matrix.arch }}
+          arch: x86_64
           upload-artifact: false
 
       # Runs after the full build, not between the two flatpak-builder
@@ -150,6 +143,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}
-          path: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}.flatpak
+          name: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}
+          path: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.flatpak
           if-no-files-found: error
