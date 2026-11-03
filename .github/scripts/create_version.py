@@ -80,7 +80,7 @@ def main():
 
                     if "Linux" in name:
                         assets["linux"] = asset
-                    elif "MacOS-universal" in name:
+                    elif "MacOS" in name:
                         assets["osx"] = asset
                     elif "win64" in name:
                         assets["win64"] = asset
