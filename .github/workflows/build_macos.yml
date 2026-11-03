@@ -87,6 +87,8 @@ jobs:
 
       - name: Install zstd
         if: always()
+        env:
+          HOMEBREW_CURL_PATH: /usr/bin/curl
         run: |
           brew install zstd
 
