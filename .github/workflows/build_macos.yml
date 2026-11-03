@@ -95,31 +95,55 @@ jobs:
         run: |
           cmake -P build.cmake -- --target install --arch arm64 ${{ startsWith(github.ref, 'refs/heads/build/') && '--no-tests' || '' }}
 
+      - name: Install rcodesign
+        if: (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/build/'))
+        env:
+          RCODESIGN_VERSION: "0.29.0"
+          RCODESIGN_SHA256: d1a532150adaf90048260d76359261aa716abafc45c53c5dc18845029184334a
+        run: |
+          archive="apple-codesign-${RCODESIGN_VERSION}-aarch64-apple-darwin"
+          curl -fsSL -o "$RUNNER_TEMP/$archive.tar.gz" "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${RCODESIGN_VERSION}/$archive.tar.gz"
+          echo "${RCODESIGN_SHA256}  $RUNNER_TEMP/$archive.tar.gz" | shasum -a 256 -c -
+          tar -xzf "$RUNNER_TEMP/$archive.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$archive" >> "$GITHUB_PATH"
+          brew list openssl@3 >/dev/null 2>&1 || brew install openssl@3
+
+      # rcodesign reads the certificate from a file, so no keychain is created
+      # or unlocked. Notarization gets the Apple ID credentials directly for the
+      # same reason: notarytool store-credentials writes to a keychain.
       - name: Bundle PrusaSlicer (BOSS) release build
         if: (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/build/'))
         working-directory: ${{ github.workspace }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          CERTIFICATE_ID: ${{ secrets.MACOS_CERTIFICATE_ID }}
+          APPLE_DEV_ACCOUNT: ${{ secrets.APPLE_DEV_ACCOUNT }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_PWD: ${{ secrets.APP_PWD }}
         run: |
+          set -euo pipefail
           CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          PASSWORD_PATH="$RUNNER_TEMP/p12_password"
+          IDENTITY_PATH="$RUNNER_TEMP/signing_identity.pem"
+          trap 'rm -f "$CERTIFICATE_PATH" "$PASSWORD_PATH" "$IDENTITY_PATH"' EXIT
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$P12_PASSWORD" "$KEYCHAIN_PATH"
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements "${{ github.workspace }}/.ci/.github/scripts/disable_validation.entitlements" --sign "$CERTIFICATE_ID" "${{ github.workspace }}/build/PrusaSlicer/bin/PrusaSlicer.app"
-          ln -s /Applications ${{ github.workspace }}/build/PrusaSlicer/bin/Applications
-          hdiutil create -volname "PrusaSlicer" -srcfolder ${{ github.workspace }}/build/PrusaSlicer/bin -ov -format UDZO PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/.ci/.github/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg
-          xcrun notarytool store-credentials "notarytool-profile" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}"
-          xcrun notarytool submit "PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg" --keychain-profile "notarytool-profile" --wait
-          xcrun stapler staple PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg
+          printf '%s' "$P12_PASSWORD" > "$PASSWORD_PATH"
+          # rcodesign cannot read the AES-256 encoding that OpenSSL 3 writes by default.
+          # -legacy reads that encoding and the older one that Keychain Access writes.
+          "$(brew --prefix openssl@3)/bin/openssl" pkcs12 -legacy -in "$CERTIFICATE_PATH" -passin file:"$PASSWORD_PATH" -nodes -out "$IDENTITY_PATH"
+
+          APP="${{ github.workspace }}/build/PrusaSlicer/bin/PrusaSlicer.app"
+          DMG="PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg"
+
+          rcodesign sign --pem-file "$IDENTITY_PATH" --code-signature-flags runtime --entitlements-xml-file "${{ github.workspace }}/.ci/.github/scripts/disable_validation.entitlements" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          ln -s /Applications "${{ github.workspace }}/build/PrusaSlicer/bin/Applications"
+          hdiutil create -volname "PrusaSlicer" -srcfolder "${{ github.workspace }}/build/PrusaSlicer/bin" -ov -format UDZO "$DMG"
+          rcodesign sign --pem-file "$IDENTITY_PATH" --code-signature-flags runtime "$DMG"
+          codesign --verify --strict --verbose=2 "$DMG"
+          xcrun notarytool submit "$DMG" --apple-id "$APPLE_DEV_ACCOUNT" --team-id "$TEAM_ID" --password "$APP_PWD" --wait
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
 
       - name: Bundle PrusaSlicer (BOSS) development build
         if: (github.ref != 'refs/heads/boss' && !startsWith(github.ref, 'refs/heads/release/') && !startsWith(github.ref, 'refs/heads/build/'))
