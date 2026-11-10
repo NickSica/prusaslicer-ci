@@ -11,6 +11,7 @@ jobs:
       date: ""
       ver: ""
       ver_pure: ""
+      HAS_SIGNING: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' }}
 
     steps:
       - name: Checkout
@@ -113,7 +114,7 @@ jobs:
       # or unlocked. Notarization gets the Apple ID credentials directly for the
       # same reason: notarytool store-credentials writes to a keychain.
       - name: Bundle PrusaSlicer (BOSS) release build
-        if: (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/build/'))
+        if: env.HAS_SIGNING == 'true' && (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/build/'))
         working-directory: ${{ github.workspace }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -145,6 +146,22 @@ jobs:
           xcrun notarytool submit "$DMG" --apple-id "$APPLE_DEV_ACCOUNT" --team-id "$TEAM_ID" --password "$APP_PWD" --wait
           xcrun stapler staple "$DMG"
           xcrun stapler validate "$DMG"
+
+      - name: Bundle PrusaSlicer (ad-hoc signed)
+        if: env.HAS_SIGNING != 'true'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          APP="${{ github.workspace }}/build/PrusaSlicer/bin/PrusaSlicer.app"
+          DMG="PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg"
+
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          ln -s /Applications "${{ github.workspace }}/build/PrusaSlicer/bin/Applications"
+          hdiutil create -volname "PrusaSlicer" \
+            -srcfolder "${{ github.workspace }}/build/PrusaSlicer/bin" \
+            -ov -format UDZO "$DMG"
 
       - name: Bundle PrusaSlicer (BOSS) development build
         if: (github.ref != 'refs/heads/boss' && !startsWith(github.ref, 'refs/heads/release/') && !startsWith(github.ref, 'refs/heads/build/'))
