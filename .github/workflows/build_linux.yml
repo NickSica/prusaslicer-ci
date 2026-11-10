@@ -63,18 +63,18 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/release/')
         shell: bash
         run: |
-          sed --in-place -e 's/"nightly"/"${{ env.ver }}+"/g' .flatpak/io.github.mjonuschat.PrusaSlicer.metainfo.xml
-          sed --in-place -e 's/tag\/nightly/tag\/version_${{ env.ver }}+boss/g' .flatpak/io.github.mjonuschat.PrusaSlicer.metainfo.xml
+          sed --in-place -e 's/"nightly"/"${{ env.ver }}+"/g' .flatpak/io.github.NickSica.PrusaSlicer.metainfo.xml
+          sed --in-place -e 's/tag\/nightly/tag\/version_${{ env.ver }}+boss/g' .flatpak/io.github.NickSica.PrusaSlicer.metainfo.xml
 
       - name: Update date information
         shell: bash
         run: |
-          sed --in-place -e 's/2024-09-19/${{ env.date_long }}/g' .flatpak/io.github.mjonuschat.PrusaSlicer.metainfo.xml
+          sed --in-place -e 's/2024-09-19/${{ env.date_long }}/g' .flatpak/io.github.NickSica.PrusaSlicer.metainfo.xml
 
       - name: Update the build source
         shell: bash
         run: |
-          flatpak-builder --show-manifest .flatpak/io.github.mjonuschat.PrusaSlicer.yml | \
+          flatpak-builder --show-manifest .flatpak/io.github.NickSica.PrusaSlicer.yml | \
             jq '.modules[] |= if .name == "PrusaSlicerDeps" or .name == "PrusaSlicer" then
                 (.sources[] |= if .type == "dir" and .path == ".." then
                     {
@@ -83,7 +83,7 @@ jobs:
                         "commit": "HEAD"
                     }
                 else . end)
-            else . end' > .flatpak/io.github.mjonuschat.PrusaSlicer.json
+            else . end' > .flatpak/io.github.NickSica.PrusaSlicer.json
 
       - name: Build PrusaSlicer (BOSS) Linux Dependencies
         if: steps.cache-build-deps-restore.outputs.cache-hit != 'true'
@@ -91,7 +91,7 @@ jobs:
         with:
           bundle: PrusaSlicer-Dependencies-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}.flatpak
           stop-at-module: PrusaSlicer
-          manifest-path: .flatpak/io.github.mjonuschat.PrusaSlicer.json
+          manifest-path: .flatpak/io.github.NickSica.PrusaSlicer.json
           cache: false
           arch: ${{ matrix.arch }}
           upload-artifact: false
@@ -107,7 +107,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: PrusaSlicer-${{ env.ver }}+Linux-${{ env.date }}.${{ matrix.arch }}.flatpak
-          manifest-path: .flatpak/io.github.mjonuschat.PrusaSlicer.json
+          manifest-path: .flatpak/io.github.NickSica.PrusaSlicer.json
           cache: false
           arch: ${{ matrix.arch }}
           upload-artifact: false

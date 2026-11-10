@@ -27,7 +27,7 @@ def version_key(v: str) -> tuple[int, ...]:
     return tuple(nums)
 
 
-RELEASES_URL = "https://api.github.com/repos/mjonuschat/PrusaSlicer/releases"
+RELEASES_URL = "https://api.github.com/repos/NickSica/PrusaSlicer/releases"
 VERSION_PATTERN = re.compile(
     r"version_(?P<version>\d+\.\d+\.\d+)(-(?P<suffix>(alpha|beta|rc)\d+))?\+boss"
 )
