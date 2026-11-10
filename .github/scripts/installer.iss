@@ -23,9 +23,9 @@
 AppName=PrusaSlicer+BOSS
 AppVersion={#Version}
 AppVerName=PrusaSlicer {#Version}
-AppPublisher=mjonuschat
-AppPublisherURL=https://github.com/mjonuschat/PrusaSlicer
-AppSupportURL=https://github.com/mjonuschat/PrusaSlicer/issues
+AppPublisher=NickSica
+AppPublisherURL=https://github.com/NickSica/PrusaSlicer
+AppSupportURL=https://github.com/NickSica/PrusaSlicer/issues
 DefaultDirName={autopf}\PrusaSlicer+BOSS
 DefaultGroupName=PrusaSlicer+BOSS
 UninstallDisplayIcon={app}\PrusaSlicer.exe
