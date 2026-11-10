@@ -19,6 +19,7 @@ jobs:
       date: ""
       ver: ""
       ver_pure: ""
+      HAS_SIGNING: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' }}
 
     steps:
       - name: Checkout
@@ -94,7 +95,7 @@ jobs:
           cmake -P build.cmake -- --target install --arch ${{ matrix.arch }}
 
       - name: Bundle PrusaSlicer (BOSS) ${{ matrix.arch }} release build
-        if: (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/'))
+        if: env.HAS_SIGNING == 'true' && (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/'))
         working-directory: ${{ github.workspace }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -118,6 +119,22 @@ jobs:
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}"
           xcrun notarytool submit "PrusaSlicer-${{ env.ver }}+MacOS-${{matrix.arch}}-${{ env.date }}.dmg" --keychain-profile "notarytool-profile" --wait
           xcrun stapler staple PrusaSlicer-${{ env.ver }}+MacOS-${{matrix.arch}}-${{ env.date }}.dmg
+
+      - name: Bundle PrusaSlicer (ad-hoc signed)
+        if: env.HAS_SIGNING != 'true' && (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/'))
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          APP="${{ github.workspace }}/build/PrusaSlicer/bin/PrusaSlicer.app"
+          DMG="PrusaSlicer-${{ env.ver }}+MacOS-${{ env.date }}.dmg"
+      
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+      
+          ln -s /Applications "${{ github.workspace }}/build/PrusaSlicer/bin/Applications"
+          hdiutil create -volname "PrusaSlicer" \
+            -srcfolder "${{ github.workspace }}/build/PrusaSlicer/bin" \
+            -ov -format UDZO "$DMG"
 
       - name: Bundle PrusaSlicer (BOSS) ${{ matrix.arch }} development build
         if: (github.ref != 'refs/heads/boss' && !startsWith(github.ref, 'refs/heads/release/'))
