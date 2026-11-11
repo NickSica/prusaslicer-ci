@@ -148,7 +148,7 @@ jobs:
           xcrun stapler validate "$DMG"
 
       - name: Bundle PrusaSlicer (ad-hoc signed)
-        if: env.HAS_SIGNING != 'true'
+        if: env.HAS_SIGNING != 'true' && (github.ref == 'refs/heads/boss' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/build/'))
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
